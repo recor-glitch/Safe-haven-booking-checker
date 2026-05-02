@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Room Availability — Home Stay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:          #F6F0E8;
+  --surface:     #FFFFFF;
+  --surface2:    #F0EAE0;
+  --border:      rgba(60,40,20,.12);
+  --border-md:   rgba(60,40,20,.22);
+  --text:        #1E1208;
+  --muted:       #7A6A5A;
+  --hint:        #A89A8A;
+  --espresso:    #2C1810;
+  --brown:       #5C3D2E;
+  --gold:        #C08A28;
+  --avail:       #276A4A;
+  --avail-bg:    #E6F5EE;
+  --avail-bdr:   rgba(39,106,74,.25);
+  --booked:      #B43514;
+  --booked-bg:   #FCF0EB;
+  --booked-bdr:  rgba(180,53,20,.25);
+  --info:        #1A5E9A;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+/* ── Shared ── */
+.display{font-family:'Playfair Display',serif;}
+.screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:2.5rem 2.5rem 2rem;max-width:500px;width:100%;box-shadow:0 2px 12px rgba(44,24,16,.06);}
+h1.display{font-size:2rem;color:var(--espresso);line-height:1.25;margin-bottom:.35rem;}
+.subtitle{color:var(--muted);font-size:.88rem;line-height:1.6;margin-bottom:2rem;}
+label{display:block;font-size:.75rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:1.25rem;margin-bottom:.4rem;}
+input,select{
+  width:100%;padding:.6rem .85rem;
+  border:1.5px solid var(--border);border-radius:8px;
+  font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--text);
+  background:var(--surface2);outline:none;appearance:none;
+  transition:border-color .18s,background .18s;
+}
+input:focus,select:focus{border-color:var(--gold);background:var(--surface);}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237A6A5A' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .85rem center;padding-right:2.2rem;}
+.hint{font-size:.78rem;color:var(--hint);line-height:1.6;margin-top:.5rem;}
+.hint a{color:var(--info);}
+.btn-primary{
+  display:block;width:100%;margin-top:1.5rem;
+  padding:.8rem;background:var(--espresso);color:#fff;
+  border:none;border-radius:8px;
+  font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:500;
+  cursor:pointer;letter-spacing:.02em;
+  transition:background .18s,transform .1s;
+}
+.btn-primary:hover{background:var(--brown);}
+.btn-primary:active{transform:scale(.99);}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;}
+.btn-back{
+  display:block;width:100%;margin-top:.75rem;
+  padding:.55rem;background:none;border:1.5px solid var(--border);
+  border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.85rem;
+  color:var(--muted);cursor:pointer;transition:background .15s;
+}
+.btn-back:hover{background:var(--surface2);}
+.err{background:var(--booked-bg);color:var(--booked);padding:.65rem .9rem;border-radius:7px;font-size:.82rem;margin-top:1rem;border:1px solid var(--booked-bdr);}
+.icon-wrap{font-size:2.2rem;margin-bottom:.6rem;}
+.required{color:var(--booked);}
+.opt{font-weight:400;text-transform:none;font-size:.75rem;color:var(--hint);}
+
+/* ── Tag buttons ── */
+.tag-group{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.4rem;}
+.tag-btn{
+  padding:.3rem .75rem;border-radius:20px;
+  border:1.5px solid var(--border-md);font-size:.78rem;
+  cursor:pointer;background:var(--surface);
+  font-family:'DM Sans',sans-serif;color:var(--muted);
+  transition:all .15s;
+}
+.tag-btn:hover{background:var(--surface2);}
+.tag-btn.active{background:var(--espresso);color:#fff;border-color:var(--espresso);}
+
+/* ── Dashboard ── */
+.dashboard{min-height:100vh;display:flex;flex-direction:column;}
+
+.dash-header{
+  background:var(--espresso);color:#fff;
+  padding:1.25rem 2rem;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:.75rem;
+}
+.dash-title h1{font-size:1.4rem;font-weight:600;color:#fff;margin:0;}
+.tagline{font-size:.75rem;opacity:.55;margin-top:.1rem;letter-spacing:.04em;}
+.dash-right{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;}
+.live-pill{
+  display:flex;align-items:center;gap:.4rem;
+  font-size:.75rem;color:rgba(255,255,255,.65);
+}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.loading-pill{display:flex;align-items:center;gap:.4rem;font-size:.75rem;color:rgba(255,255,255,.65);}
+.spin{
+  width:13px;height:13px;
+  border:2px solid rgba(255,255,255,.25);
+  border-top-color:rgba(255,255,255,.75);
+  border-radius:50%;animation:spin .65s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.btn-hdr{
+  padding:.35rem .8rem;background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.2);border-radius:6px;
+  font-family:'DM Sans',sans-serif;font-size:.78rem;color:rgba(255,255,255,.85);
+  cursor:pointer;transition:background .15s;
+}
+.btn-hdr:hover{background:rgba(255,255,255,.18);}
+
+.dash-body{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:1.75rem 2rem 3rem;}
+
+/* ── Controls bar ── */
+.ctrls{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:1rem;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:10px;padding:1rem 1.5rem;margin-bottom:2rem;
+}
+.date-row{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;}
+.date-label{font-size:.75rem;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);}
+input.date-input{
+  width:auto;padding:.38rem .7rem;
+  border:1.5px solid var(--border);border-radius:6px;
+  font-size:.88rem;cursor:pointer;
+}
+.btn-today{
+  padding:.35rem .7rem;border:1.5px solid var(--border);
+  border-radius:6px;font-family:'DM Sans',sans-serif;font-size:.78rem;
+  background:var(--surface);color:var(--muted);cursor:pointer;transition:background .15s;
+}
+.btn-today:hover{background:var(--surface2);}
+.stats-row{display:flex;align-items:center;gap:1.5rem;}
+.stat{text-align:center;}
+.stat-num{font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:700;line-height:1;}
+.stat-num.av{color:var(--avail);}
+.stat-num.bk{color:var(--booked);}
+.stat-num.tt{color:var(--gold);}
+.stat-lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-top:.1rem;}
+.stat-div{width:1px;height:36px;background:var(--border);}
+
+/* ── Section ── */
+.section{margin-bottom:2.5rem;}
+.sec-title{
+  font-family:'Playfair Display',serif;font-size:.95rem;font-weight:600;
+  color:var(--espresso);margin-bottom:1rem;
+  display:flex;align-items:center;gap:.5rem;
+}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--border);margin-left:.3rem;}
+.sec-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.sec-dot.av{background:var(--avail);}
+.sec-dot.bk{background:var(--booked);}
+
+/* ── Room grid ── */
+.rooms-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  gap:.85rem;
+}
+.room-card{
+  border-radius:10px;padding:1.1rem 1.25rem;
+  border:1.5px solid;cursor:default;
+  animation:fadein .35s ease;
+  transition:transform .18s,box-shadow .18s;
+}
+@keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+.room-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.09);}
+.room-card.av{background:var(--avail-bg);border-color:var(--avail-bdr);}
+.room-card.bk{background:var(--booked-bg);border-color:var(--booked-bdr);}
+.room-name{font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;margin-bottom:.35rem;}
+.room-card.av .room-name{color:var(--avail);}
+.room-card.bk .room-name{color:var(--booked);}
+.room-badge{font-size:.7rem;font-weight:500;letter-spacing:.07em;text-transform:uppercase;}
+.room-badge.av{color:var(--avail);}
+.room-badge.bk{color:var(--booked);}
+.room-detail{font-size:.78rem;color:var(--muted);margin-top:.35rem;line-height:1.45;}
+
+/* ── Empty ── */
+.empty{text-align:center;padding:4rem 2rem;color:var(--muted);}
+.empty .ico{font-size:3rem;margin-bottom:.75rem;}
+.empty p{font-size:.88rem;line-height:1.6;}
+
+@media(max-width:580px){
+  .dash-body{padding:1.25rem 1rem 2rem;}
+  .ctrls{flex-direction:column;align-items:flex-start;}
+  .dash-header{padding:1rem 1.25rem;}
+  .card{padding:1.75rem 1.5rem 1.5rem;}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const DB_ID  = "34e173006daf81d38d92c53194799ead";
+const PROXY  = "";
+
+/* ── state ── */
+const S = {
+  phase: "token",                // token | setup | dashboard
+  tokenDraft: "",
+  token: "",
+  schema: null,
+  dbTitle: "Home Stay",
+  mapping: { room:"", checkIn:"", checkOut:"", status:"", bookedValues:[] },
+  selectedDate: today(),
+  bookings: [],
+  rooms: [],
+  loading: false,
+  error: "",
+  lastUpdated: null,
+  countdown: 30
+};
+
+let refreshTimer = null, cdTimer = null;
+
+function today(){ return new Date().toISOString().split("T")[0]; }
+
+/* ── Notion API ── */
+async function nReq(path, body=null){
+  // Check if path is /databases/ID and try to handle potential errors
+  if (path.startsWith("/databases/") && !path.includes("/query")) {
+    const dbId = path.split("/")[2];
+    console.log("Attempting to access DB:", dbId);
+  }
+  
+  const url = "/api" + path;
+  const res = await fetch(url, {
+    method: body ? "POST" : "GET",
+    headers:{
+      "Authorization": "Bearer " + S.token,
+      "Notion-Version": "2022-06-28",
+      "Content-Type": "application/json"
+    },
+    body: body ? JSON.stringify(body) : null
+  });
+  if(!res.ok){
+    const d = await res.json().catch(()=>({}));
+    throw new Error(d.message || "HTTP " + res.status);
+  }
+  return res.json();
+}
+
+function textOf(prop){
+  if(!prop) return "";
+  switch(prop.type){
+    case "title":        return prop.title?.map(t=>t.plain_text).join("")||"Untitled";
+    case "rich_text":    return prop.rich_text?.map(t=>t.plain_text).join("")||"";
+    case "select":       return prop.select?.name||"";
+    case "multi_select": return prop.multi_select?.map(s=>s.name).join(", ")||"";
+    case "number":       return String(prop.number??"")||"";
+    case "phone_number": return prop.phone_number||"";
+    case "email":        return prop.email||"";
+    default:             return "";
+  }
+}
+
+function dateOf(prop){
+  if(!prop||prop.type!=="date"||!prop.date) return null;
+  return { start: prop.date.start, end: prop.date.end||prop.date.start };
+}
+
+function isBooked(page, dateStr){
+  const m = S.mapping;
+  if(m.status && m.bookedValues.length){
+    if(!m.bookedValues.includes(textOf(page.properties[m.status]))) return false;
+  }
+  const ci = dateOf(page.properties[m.checkIn]);
+  if(!ci) return false;
+  let end = ci.end;
+  if(m.checkOut){ const co = dateOf(page.properties[m.checkOut]); end = co?.start||ci.end; }
+  if(!end) end = ci.start;
+  return m.checkOut
+    ? (dateStr >= ci.start && dateStr < end)
+    : (dateStr >= ci.start && dateStr <= end);
+}
+
+function bookingFor(room, dateStr){
+  return S.bookings.find(b => textOf(b.properties[S.mapping.room]).trim()===room && isBooked(b, dateStr));
+}
+
+/* ── Phases ── */
+async function connect(){
+  const t = (document.getElementById("ti")?.value || S.tokenDraft).trim();
+  if(!t){ S.error="Please paste your Notion integration token."; render(); return; }
+  S.token=t; S.error=""; S.loading=true; render();
+  try{
+    const db = await nReq("/databases/"+DB_ID);
+    console.log("Database fetch response:", db);
+    S.dbTitle = db.title?.map(t=>t.plain_text).join("")||"Home Stay";
+    S.schema  = db;
+    const props = db.properties;
+    let room="", checkIn="", checkOut="", status="";
+    for(const [n,p] of Object.entries(props)){
+      const l = n.toLowerCase();
+      if(p.type==="title"   && !room)   room    = n;
+      if(p.type==="date"){
+        if(!checkIn  && (l.includes("check in")||l.includes("checkin")||l.includes("arrival")||l.includes("start")||l.includes("from")||l.includes("date"))) checkIn = n;
+        if(!checkOut && (l.includes("check out")||l.includes("checkout")||l.includes("departure")||l.includes("end")||l.includes("to"))) checkOut = n;
+        if(!checkIn) checkIn = n;
+      }
+      if(!status && (l==="status"||l.includes("booking status"))) status = n;
+    }
+    S.mapping = { room, checkIn, checkOut, status, bookedValues:[] };
+    S.phase = "setup";
+  } catch(e){ S.error=e.message; }
+  S.loading=false; render();
+}
+
+async function fetchData(){
+  S.loading=true; render();
+  try{
+    let all=[], cursor;
+    do{
+      const body={page_size:100};
+      if(cursor) body.start_cursor=cursor;
+      const r = await nReq("/databases/"+DB_ID+"/query", body);
+      all=all.concat(r.results);
+      cursor = r.has_more ? r.next_cursor : null;
+    } while(cursor);
+    S.bookings = all;
+    const rs = new Set();
+    for(const pg of all){
+      const r = textOf(pg.properties[S.mapping.room]);
+      if(r && r!=="Untitled" && r.trim()) rs.add(r.trim());
+    }
+    S.rooms = [...rs].sort();
+    S.lastUpdated = new Date();
+    S.error = "";
+    S.countdown = 30;
+  } catch(e){ S.error=e.message; }
+  S.loading=false; render();
+}
+
+function launchDashboard(){
+  if(!S.mapping.room||!S.mapping.checkIn){ S.error="Room name and check-in date are required."; render(); return; }
+  clearInterval(refreshTimer); clearInterval(cdTimer);
+  S.phase="dashboard"; S.countdown=30;
+  fetchData();
+  refreshTimer = setInterval(()=>{ fetchData(); }, 30000);
+  cdTimer = setInterval(()=>{
+    S.countdown = S.countdown<=1 ? 30 : S.countdown-1;
+    const el=document.getElementById("cd"); if(el) el.textContent=S.countdown+"s";
+  }, 1000);
+}
+
+/* ── Helpers ── */
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function fmtTime(d){ return d ? d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}) : "—"; }
+
+function propOpts(sel, filter){
+  const all = S.schema ? Object.entries(S.schema.properties) : [];
+  const list = filter ? all.filter(([,p])=>filter(p)) : all;
+  return list.map(([k])=>`<option value="${esc(k)}"${k===sel?" selected":""}>${esc(k)}</option>`).join("");
+}
+
+/* ── Render ── */
+function render(){
+  document.getElementById("app").innerHTML =
+    S.phase==="token"    ? renderToken() :
+    S.phase==="setup"    ? renderSetup() :
+                           renderDashboard();
+  bind();
+}
+
+function renderToken(){
+  return `<div class="screen"><div class="card">
+    <div class="icon-wrap">🏡</div>
+    <h1 class="display">Room availability</h1>
+    <p class="subtitle">Connect your Notion booking database to see which rooms are free — updating every 30 seconds.</p>
+    <label for="ti">Notion integration token</label>
+    <input type="password" id="ti" placeholder="secret_xxxxxxxxxxxxxxxxxxxx" value="${esc(S.tokenDraft)}" autocomplete="off">
+    <p class="hint">Create an integration at <a href="https://www.notion.so/my-integrations" target="_blank">notion.so/my-integrations</a>, copy the secret, then share your booking database with it.</p>
+    ${S.error?`<div class="err">${esc(S.error)}</div>`:""}
+    <button class="btn-primary" id="btn-cn" ${S.loading?"disabled":""}>
+      ${S.loading?`<span style="display:flex;align-items:center;justify-content:center;gap:.5rem"><span class="spin"></span>Connecting…</span>`:"Connect →"}
+    </button>
+  </div></div>`;
+}
+
+function renderSetup(){
+  const m = S.mapping;
+  const statusVals = (()=>{
+    if(!m.status||!S.schema) return [];
+    const sp = S.schema.properties[m.status];
+    return sp?.select?.options?.map(o=>o.name) || sp?.multi_select?.options?.map(o=>o.name) || [];
+  })();
+  return `<div class="screen"><div class="card" style="max-width:540px">
+    <h1 class="display" style="font-size:1.6rem">Map your properties</h1>
+    <p class="subtitle">We've auto-detected your database structure. Confirm or adjust below.</p>
+    
+    <label>Room / unit name <span class="required">*</span></label>
+    <select id="m-room"><option value="">— select —</option>${propOpts(m.room)}</select>
+    
+    <label>Check-in date <span class="required">*</span></label>
+    <select id="m-cin"><option value="">— select —</option>${propOpts(m.checkIn, p=>p.type==="date")}</select>
+    
+    <label>Check-out date <span class="opt">(optional — leave blank if using a date range in check-in)</span></label>
+    <select id="m-cout"><option value="">— not set —</option>${propOpts(m.checkOut, p=>p.type==="date")}</select>
+    
+    <label>Booking status <span class="opt">(optional — filters out cancelled / tentative bookings)</span></label>
+    <select id="m-st"><option value="">— all entries count as bookings —</option>${propOpts(m.status, p=>["select","multi_select"].includes(p.type))}</select>
+    
+    ${statusVals.length?`
+      <label>Which values mean "booked"? <span class="opt">(tap to select)</span></label>
+      <div class="tag-group">
+        ${statusVals.map(v=>`<button class="tag-btn${m.bookedValues.includes(v)?" active":""}" data-v="${esc(v)}">${esc(v)}</button>`).join("")}
+      </div>`:""}
+    
+    ${S.error?`<div class="err">${esc(S.error)}</div>`:""}
+    <button class="btn-primary" id="btn-go">Launch dashboard →</button>
+    <button class="btn-back" id="btn-bk">← Back</button>
+  </div></div>`;
+}
+
+function renderDashboard(){
+  const d = S.selectedDate;
+  const avail=[], booked=[];
+  for(const room of S.rooms){
+    const bk = bookingFor(room, d);
+    (bk ? booked : avail).push({ room, bk });
+  }
+
+  function roomCard({ room, bk }, cls){
+    let guest="", dates="";
+    if(bk){
+      const ge = Object.entries(bk.properties).find(([k])=>{
+        const l=k.toLowerCase();
+        return k!==S.mapping.room && (l.includes("guest")||l.includes("name")||l.includes("customer")||l.includes("client"));
+      });
+      if(ge) guest = textOf(ge[1]);
+      const ci = dateOf(bk.properties[S.mapping.checkIn]);
+      const co = S.mapping.checkOut ? dateOf(bk.properties[S.mapping.checkOut]) : null;
+      if(ci){ const end=co?.start||ci.end; dates=end&&end!==ci.start?`${ci.start} – ${end}`:ci.start||""; }
+    }
+    return `<div class="room-card ${cls}">
+      <div class="room-name">${esc(room)}</div>
+      <div class="room-badge ${cls}">${cls==="av"?"✓ Available":"✕ Booked"}</div>
+      ${guest?`<div class="room-detail">👤 ${esc(guest)}</div>`:""}
+      ${dates?`<div class="room-detail">📅 ${esc(dates)}</div>`:""}
+    </div>`;
+  }
+
+  return `<div class="dashboard">
+    <header class="dash-header">
+      <div class="dash-title">
+        <h1 class="display">${esc(S.dbTitle)}</h1>
+        <div class="tagline">Booking availability dashboard</div>
+      </div>
+      <div class="dash-right">
+        ${S.loading
+          ? `<div class="loading-pill"><span class="spin"></span>&nbsp;Refreshing…</div>`
+          : `<div class="live-pill"><span class="live-dot"></span>Updated ${fmtTime(S.lastUpdated)} &nbsp;·&nbsp; next in <span id="cd">${S.countdown}s</span></div>`}
+        <button class="btn-hdr" id="btn-rf">↻ Refresh</button>
+        <button class="btn-hdr" id="btn-cfg">⚙ Settings</button>
+      </div>
+    </header>
+
+    <div class="dash-body">
+      ${S.error?`<div class="err" style="margin-bottom:1.5rem">${esc(S.error)}</div>`:""}
+
+      <div class="ctrls">
+        <div class="date-row">
+          <span class="date-label">Showing</span>
+          <input type="date" class="date-input" id="dp" value="${d}">
+          <button class="btn-today" id="btn-td">Today</button>
+        </div>
+        <div class="stats-row">
+          <div class="stat"><div class="stat-num av">${avail.length}</div><div class="stat-lbl">Available</div></div>
+          <div class="stat-div"></div>
+          <div class="stat"><div class="stat-num bk">${booked.length}</div><div class="stat-lbl">Booked</div></div>
+          <div class="stat-div"></div>
+          <div class="stat"><div class="stat-num tt">${S.rooms.length}</div><div class="stat-lbl">Total</div></div>
+        </div>
+      </div>
+
+      ${S.rooms.length===0&&!S.loading?`<div class="empty"><div class="ico">🏠</div><p>No rooms found yet. Make sure the <strong>Room / unit name</strong> property is mapped correctly and your database has entries.</p></div>`:""}
+
+      ${avail.length?`<div class="section">
+        <div class="sec-title"><span class="sec-dot av"></span>Available (${avail.length})</div>
+        <div class="rooms-grid">${avail.map(x=>roomCard(x,"av")).join("")}</div>
+      </div>`:""}
+
+      ${booked.length?`<div class="section" style="${avail.length?"margin-top:2rem":""}">
+        <div class="sec-title"><span class="sec-dot bk"></span>Booked (${booked.length})</div>
+        <div class="rooms-grid">${booked.map(x=>roomCard(x,"bk")).join("")}</div>
+      </div>`:""}
+    </div>
+  </div>`;
+}
+
+/* ── Event binding ── */
+function bind(){
+  const ti = document.getElementById("ti");
+  if(ti){ ti.oninput=e=>{S.tokenDraft=e.target.value;}; ti.onkeydown=e=>{if(e.key==="Enter")connect();}; }
+  g("btn-cn",  ()=>connect());
+  g("btn-go",  ()=>{
+    S.mapping.room   = v("m-room")||S.mapping.room;
+    S.mapping.checkIn= v("m-cin") ||S.mapping.checkIn;
+    S.mapping.checkOut= v("m-cout")||"";
+    S.mapping.status  = v("m-st") ||"";
+    launchDashboard();
+  });
+  g("btn-bk",  ()=>{ S.phase="token"; S.error=""; render(); });
+  g("btn-rf",  ()=>fetchData());
+  g("btn-cfg", ()=>{ clearInterval(refreshTimer); clearInterval(cdTimer); S.phase="setup"; render(); });
+  g("btn-td",  ()=>{ S.selectedDate=today(); render(); });
+  const dp=document.getElementById("dp");
+  if(dp) dp.onchange=e=>{S.selectedDate=e.target.value; render();};
+
+  // setup selects: live update mapping for status tag display
+  ["m-room","m-cin","m-cout"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.onchange=e=>{ 
+      if(id==="m-room")  S.mapping.room=e.target.value;
+      if(id==="m-cin")   S.mapping.checkIn=e.target.value;
+      if(id==="m-cout")  S.mapping.checkOut=e.target.value;
+    };
+  });
+  const mst=document.getElementById("m-st");
+  if(mst) mst.onchange=e=>{ S.mapping.status=e.target.value; S.mapping.bookedValues=[]; render(); };
+
+  document.querySelectorAll(".tag-btn").forEach(b=>{
+    b.onclick=()=>{
+      const val=b.dataset.v, idx=S.mapping.bookedValues.indexOf(val);
+      idx>=0 ? S.mapping.bookedValues.splice(idx,1) : S.mapping.bookedValues.push(val);
+      b.classList.toggle("active");
+    };
+  });
+}
+
+function g(id, fn){ const el=document.getElementById(id); if(el) el.onclick=fn; }
+function v(id){ const el=document.getElementById(id); return el?el.value:""; }
+
+render();
+</script>
+</body>
+</html>
