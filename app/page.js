@@ -37,7 +37,10 @@ export default function Dashboard() {
   const [dbTitle, setDbTitle] = useState("SAFE HAVEN HOMESTAY");
   
   const [mapping, setMapping] = useState({ room: "", checkIn: "", checkOut: "", status: "", bookedValues: [] });
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split("T")[0]);
+  // Get today's date safely in the local timezone formatted as YYYY-MM-DD
+  const getTodayLocalStr = () => format(new Date(), "yyyy-MM-dd");
+  
+  const [selectedDate, setSelectedDate] = useState(() => getTodayLocalStr());
   
   const [bookings, setBookings] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -600,7 +603,7 @@ export default function Dashboard() {
               onChange={e => setSelectedDate(e.target.value)}
               className="w-full sm:w-[180px] h-10"
             />
-            <Button variant="secondary" className="h-10 w-full sm:w-auto" onClick={() => setSelectedDate(new Date().toISOString().split("T")[0])}>
+            <Button variant="secondary" className="h-10 w-full sm:w-auto" onClick={() => setSelectedDate(getTodayLocalStr())}>
               Today
             </Button>
           </div>
