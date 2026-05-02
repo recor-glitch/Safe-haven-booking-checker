@@ -201,12 +201,12 @@ input.date-input{
 <div id="app"></div>
 
 <script>
-const DB_ID  = "34e173006daf81d38d92c53194799ead";
+let DB_ID  = "";
 const PROXY  = "";
 
 /* ── state ── */
 const S = {
-  phase: "token",                // token | setup | dashboard
+  phase: "loading",              // loading | token | setup | dashboard
   tokenDraft: "",
   token: "",
   schema: null,
@@ -234,13 +234,19 @@ async function nReq(path, body=null){
   }
   
   const url = "/api" + path;
+  
+  const headers = {
+    "Notion-Version": "2022-06-28",
+    "Content-Type": "application/json"
+  };
+  
+  if (S.token && S.token !== "env") {
+    headers["Authorization"] = "Bearer " + S.token;
+  }
+
   const res = await fetch(url, {
     method: body ? "POST" : "GET",
-    headers:{
-      "Authorization": "Bearer " + S.token,
-      "Notion-Version": "2022-06-28",
-      "Content-Type": "application/json"
-    },
+    headers,
     body: body ? JSON.stringify(body) : null
   });
   if(!res.ok){
@@ -289,10 +295,14 @@ function bookingFor(room, dateStr){
 }
 
 /* ── Phases ── */
-async function connect(){
-  const t = (document.getElementById("ti")?.value || S.tokenDraft).trim();
-  if(!t){ S.error="Please paste your Notion integration token."; render(); return; }
-  S.token=t; S.error=""; S.loading=true; render();
+async function connect(auto = false){
+  if (!auto) {
+    const t = (document.getElementById("ti")?.value || S.tokenDraft).trim();
+    if(!t){ S.error="Please paste your Notion integration token."; render(); return; }
+    S.token=t; 
+  }
+  
+  S.error=""; S.loading=true; render();
   try{
     const db = await nReq("/databases/"+DB_ID);
     console.log("Database fetch response:", db);
@@ -366,10 +376,15 @@ function propOpts(sel, filter){
 /* ── Render ── */
 function render(){
   document.getElementById("app").innerHTML =
+    S.phase==="loading"  ? renderLoading() :
     S.phase==="token"    ? renderToken() :
     S.phase==="setup"    ? renderSetup() :
                            renderDashboard();
   bind();
+}
+
+function renderLoading() {
+  return `<div class="screen"><div style="display:flex;align-items:center;gap:.75rem;color:var(--espresso);"><span class="spin" style="border-color:rgba(0,0,0,0.1);border-top-color:var(--espresso);"></span> <strong>Connecting to environment...</strong></div></div>`;
 }
 
 function renderToken(){
@@ -559,7 +574,28 @@ function bind(){
 function g(id, fn){ const el=document.getElementById(id); if(el) el.onclick=fn; }
 function v(id){ const el=document.getElementById(id); return el?el.value:""; }
 
-render();
+async function init() {
+  render(); // show loading
+  try {
+    const res = await fetch("/api/config");
+    const config = await res.json();
+    DB_ID = config.dbId;
+    
+    if (config.hasEnvToken) {
+      S.token = "env";
+      await connect(true);
+    } else {
+      S.phase = "token";
+      render();
+    }
+  } catch(e) {
+    console.error("Config fetch failed:", e);
+    S.phase = "token";
+    render();
+  }
+}
+
+init();
 </script>
 </body>
 </html>
