@@ -234,10 +234,22 @@ export default function Dashboard() {
     const m = mapping;
     
     // Status checking (case-insensitive and trimmed to avoid spaces breaking it)
+    // Note: m.status must EXACTLY match the property name, including case and spaces.
+    // If the user selected 'Confirmation #' but Notion returns 'confirmation #', it could fail.
+    // So we safely check if the property exists first.
     if (m.status && m.bookedValues.length > 0) {
-      const statusText = textOf(page.properties[m.status]).trim().toLowerCase();
-      const allowed = m.bookedValues.map(v => v.trim().toLowerCase());
-      if (!allowed.includes(statusText)) return false;
+      // Safely find the actual property key in case of case-mismatch from mapping
+      const actualStatusPropKey = Object.keys(page.properties).find(k => k.toLowerCase() === m.status.toLowerCase());
+      
+      if (actualStatusPropKey) {
+        const statusText = textOf(page.properties[actualStatusPropKey]).trim().toLowerCase();
+        const allowed = m.bookedValues.map(v => v.trim().toLowerCase());
+        
+        // If the status isn't one of the allowed values (e.g. "Confirmed"), it's not booked!
+        if (!allowed.includes(statusText)) {
+          return false;
+        }
+      }
     }
     
     const ci = dateOf(page.properties[m.checkIn]);
