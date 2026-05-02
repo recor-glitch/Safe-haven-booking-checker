@@ -253,9 +253,10 @@ export default function Dashboard() {
     if (!end) end = ci.start;
 
     // We strip out timezones/times and parse strictly by the calendar day
-    const startDay = new Date(ci.start.split('T')[0]);
-    const endDay = new Date(end.split('T')[0]);
-    const checkDay = new Date(dateStr.split('T')[0]);
+    // The "T00:00:00" ensures local parsing doesn't shift the day by accident
+    const startDay = new Date(ci.start.split('T')[0] + "T00:00:00");
+    const endDay = new Date(end.split('T')[0] + "T00:00:00");
+    const checkDay = new Date(dateStr.split('T')[0] + "T00:00:00");
 
     // Failsafe in case of invalid parsing
     if (isNaN(startDay.getTime()) || isNaN(endDay.getTime())) return false;
@@ -266,7 +267,7 @@ export default function Dashboard() {
     } else {
       // Range booking: it is booked FROM the check-in day UP TO (but excluding) the check-out day.
       // This means the check-out day itself is "Available" for the next guest!
-      return checkDay >= startDay && checkDay < endDay;
+      return checkDay.getTime() >= startDay.getTime() && checkDay.getTime() < endDay.getTime();
     }
   };
 
