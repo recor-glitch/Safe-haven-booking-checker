@@ -252,22 +252,18 @@ export default function Dashboard() {
     
     if (!end) end = ci.start;
 
-    // We strip out timezones/times and parse strictly by the calendar day
-    // The "T00:00:00" ensures local parsing doesn't shift the day by accident
-    const startDay = new Date(ci.start.split('T')[0] + "T00:00:00");
-    const endDay = new Date(end.split('T')[0] + "T00:00:00");
-    const checkDay = new Date(dateStr.split('T')[0] + "T00:00:00");
+    // Use string comparisons (YYYY-MM-DD) instead of Date objects to completely avoid timezone shifting
+    const startDateStr = ci.start.split('T')[0];
+    const endDateStr = end.split('T')[0];
+    const checkDateStr = dateStr.split('T')[0];
 
-    // Failsafe in case of invalid parsing
-    if (isNaN(startDay.getTime()) || isNaN(endDay.getTime())) return false;
-
-    if (startDay.getTime() === endDay.getTime()) {
-      // Single day booking (check-in and check-out are the exact same day)
-      return checkDay.getTime() === startDay.getTime();
+    if (startDateStr === endDateStr) {
+      // Single day booking
+      return checkDateStr === startDateStr;
     } else {
-      // Range booking: it is booked FROM the check-in day UP TO (but excluding) the check-out day.
-      // This means the check-out day itself is "Available" for the next guest!
-      return checkDay.getTime() >= startDay.getTime() && checkDay.getTime() < endDay.getTime();
+      // Range booking: lexical string comparison works perfectly for YYYY-MM-DD
+      // Check date must be >= start date AND < end date
+      return checkDateStr >= startDateStr && checkDateStr < endDateStr;
     }
   };
 
@@ -459,9 +455,11 @@ export default function Dashboard() {
   }
 
   // Dashboard Phase
-  const dObj = new Date(selectedDate);
-  dObj.setUTCDate(dObj.getUTCDate() + 1);
-  const nextD = dObj.toISOString().split("T")[0];
+  // Also fix timezone issues with the next day calculation by just formatting the current selected date
+  const selectedDateObj = new Date(selectedDate);
+  // Add 1 day safely without timezone mess
+  selectedDateObj.setDate(selectedDateObj.getDate() + 1);
+  const nextD = format(selectedDateObj, "yyyy-MM-dd");
 
   const avail = [];
   const booked = [];
