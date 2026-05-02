@@ -240,11 +240,16 @@ export default function Dashboard() {
     const ci = dateOf(page.properties[m.checkIn]);
     if (!ci) return false; // Without a check-in date, we can't determine booking
     
-    let end = ci.end;
+    // Fallback: If there is no separate checkOut field mapped, see if the checkIn field contains a range 
+    // Notion API returns ranges inside the same property like: { start: '2026-05-01', end: '2026-05-03' }
+    let end = ci.end; 
+    
+    // If a separate checkOut column is mapped, override it
     if (m.checkOut) {
       const co = dateOf(page.properties[m.checkOut]);
       if (co) end = co.start || co.end;
     }
+    
     if (!end) end = ci.start;
 
     // We strip out timezones/times and parse strictly by the calendar day
@@ -472,14 +477,23 @@ export default function Dashboard() {
     if (bk) {
       const ge = Object.entries(bk.properties).find(([k]) => {
         const l = k.toLowerCase();
-        return k !== mapping.room && (l.includes("guest") || l.includes("name") || l.includes("customer") || l.includes("client"));
+        return k !== mapping.room && (l.includes("guest") || l.includes("name") || l.includes("customer") || l.includes("client") || l.includes("title"));
       });
       if (ge) guest = textOf(ge[1]);
+      
       const ci = dateOf(bk.properties[mapping.checkIn]);
       const co = mapping.checkOut ? dateOf(bk.properties[mapping.checkOut]) : null;
+      
       if (ci) { 
-        const end = co?.start || ci.end; 
-        dates = end && end !== ci.start ? `${ci.start} to ${end}` : ci.start || ""; 
+        let end = ci.end;
+        if (co) end = co.start || co.end;
+        
+        // Only show range if end exists and is different from start
+        if (end && end !== ci.start) {
+            dates = `${ci.start} to ${end}`;
+        } else {
+            dates = ci.start || ""; 
+        }
       }
     }
 
