@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Room Availability — Home Stay</title>
+<title>Room Availability — SAFE HAVEN HOMESTAY</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
 <style>
@@ -210,7 +210,7 @@ const S = {
   tokenDraft: "",
   token: "",
   schema: null,
-  dbTitle: "Home Stay",
+  dbTitle: "SAFE HAVEN HOMESTAY",
   mapping: { room:"", checkIn:"", checkOut:"", status:"", bookedValues:[] },
   selectedDate: today(),
   bookings: [],
@@ -296,7 +296,7 @@ async function connect(){
   try{
     const db = await nReq("/databases/"+DB_ID);
     console.log("Database fetch response:", db);
-    S.dbTitle = db.title?.map(t=>t.plain_text).join("")||"Home Stay";
+    S.dbTitle = "SAFE HAVEN HOMESTAY";
     S.schema  = db;
     const props = db.properties;
     let room="", checkIn="", checkOut="", status="";
@@ -424,13 +424,18 @@ function renderSetup(){
 
 function renderDashboard(){
   const d = S.selectedDate;
+  const dObj = new Date(d);
+  dObj.setUTCDate(dObj.getUTCDate() + 1);
+  const nextD = dObj.toISOString().split("T")[0];
+
   const avail=[], booked=[];
   for(const room of S.rooms){
     const bk = bookingFor(room, d);
-    (bk ? booked : avail).push({ room, bk });
+    const nextBk = bookingFor(room, nextD);
+    (bk ? booked : avail).push({ room, bk, nextBk });
   }
 
-  function roomCard({ room, bk }, cls){
+  function roomCard({ room, bk, nextBk }, cls){
     let guest="", dates="";
     if(bk){
       const ge = Object.entries(bk.properties).find(([k])=>{
@@ -442,11 +447,24 @@ function renderDashboard(){
       const co = S.mapping.checkOut ? dateOf(bk.properties[S.mapping.checkOut]) : null;
       if(ci){ const end=co?.start||ci.end; dates=end&&end!==ci.start?`${ci.start} – ${end}`:ci.start||""; }
     }
+    
+    let nextDayStatus = "";
+    if(nextBk) {
+      if(bk && nextBk.id === bk.id) {
+        nextDayStatus = `<div class="room-detail" style="color:var(--info); font-weight: 500; margin-top: .75rem; border-top: 1px dashed var(--border); padding-top: .5rem;">➔ Continues tomorrow</div>`;
+      } else {
+        nextDayStatus = `<div class="room-detail" style="color:var(--booked); margin-top: .75rem; border-top: 1px dashed var(--border); padding-top: .5rem;">➔ Booked tomorrow</div>`;
+      }
+    } else {
+      nextDayStatus = `<div class="room-detail" style="color:var(--avail); margin-top: .75rem; border-top: 1px dashed var(--border); padding-top: .5rem;">➔ Available tomorrow</div>`;
+    }
+
     return `<div class="room-card ${cls}">
       <div class="room-name">${esc(room)}</div>
       <div class="room-badge ${cls}">${cls==="av"?"✓ Available":"✕ Booked"}</div>
       ${guest?`<div class="room-detail">👤 ${esc(guest)}</div>`:""}
       ${dates?`<div class="room-detail">📅 ${esc(dates)}</div>`:""}
+      ${nextDayStatus}
     </div>`;
   }
 
