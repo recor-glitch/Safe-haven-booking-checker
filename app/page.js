@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { format, addDays } from "date-fns";
 import { LogOut, Home, RefreshCw, Settings, AlertCircle, Calendar as CalendarIcon, CheckCircle2, XCircle, User, ArrowRight } from "lucide-react";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,20 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const mappingSchema = z.object({
+  room: z.string().min(1, "Room name is required"),
+  checkIn: z.string().min(1, "Check-in date is required"),
+  checkOut: z.string().optional(),
+  status: z.string().optional(),
+  bookedValues: z.array(z.string()).optional()
+});
+
+const tokenSchema = z.object({
+  token: z.string()
+    .min(1, "Notion integration token is required.")
+    .regex(/^secret_[a-zA-Z0-9]+$/, "Token must be a valid Notion integration secret (starts with 'secret_').")
+});
 
 export default function Dashboard() {
   const [phase, setPhase] = useState("loading"); // loading, token, setup, dashboard
@@ -76,8 +91,14 @@ export default function Dashboard() {
 
   const connect = async (auto = false, useDbId = config.dbId, useToken = token) => {
     if (!auto) {
-      if (!tokenDraft) {
-        setError("Please paste your Notion integration token.");
+      try {
+        tokenSchema.parse({ token: tokenDraft });
+      } catch (err) {
+        if (err instanceof z.ZodError) {
+          setError(err.errors[0].message);
+        } else {
+          setError("Invalid token format.");
+        }
         return;
       }
       setToken(tokenDraft);
@@ -92,28 +113,24 @@ export default function Dashboard() {
       setDbTitle(db.title?.[0]?.plain_text || "SAFE HAVEN HOMESTAY");
       
       const props = db.properties;
-      let room = "", checkIn = "", checkOut = "", status = "";
+      const propKeys = Object.keys(props);
       
-      for (const [n, p] of Object.entries(props)) {
-        const l = n.toLowerCase();
-        
-        // Exact matching for specific default preferences
-        if (l === "room") room = n;
-        else if (p.type === "title" && !room) room = n;
-        
-        if (p.type === "date") {
-          if (l === "check-in") checkIn = n;
-          else if (!checkIn && (l.includes("check in") || l.includes("checkin") || l.includes("arrival") || l.includes("start") || l.includes("from") || l.includes("date"))) checkIn = n;
-          
-          if (l === "check-out") checkOut = n;
-          else if (!checkOut && (l.includes("check out") || l.includes("checkout") || l.includes("departure") || l.includes("end") || l.includes("to"))) checkOut = n;
-          
-          if (!checkIn) checkIn = n;
-        }
-        
-        if (l === "confirmation #") status = n;
-        else if (!status && (l === "status" || l.includes("booking status"))) status = n;
-      }
+      const room = propKeys.find(k => k.toLowerCase() === "room") || 
+                   propKeys.find(k => props[k].type === "title") || 
+                   "";
+                   
+      const checkIn = propKeys.find(k => k.toLowerCase() === "check-in") || 
+                      propKeys.find(k => props[k].type === "date" && k.toLowerCase().includes("in")) || 
+                      propKeys.find(k => props[k].type === "date") || 
+                      "";
+                      
+      const checkOut = propKeys.find(k => k.toLowerCase() === "check-out") || 
+                       propKeys.find(k => props[k].type === "date" && k.toLowerCase().includes("out")) || 
+                       "";
+                       
+      const status = propKeys.find(k => k.toLowerCase() === "confirmation #") || 
+                     propKeys.find(k => k.toLowerCase() === "status" || k.toLowerCase().includes("booking")) || 
+                     "";
       
       setMapping(m => ({ ...m, room, checkIn, checkOut, status, bookedValues: ["Confirmed"] }));
       setPhase("setup");
@@ -171,12 +188,18 @@ export default function Dashboard() {
   }, [phase]);
 
   const launchDashboard = () => {
-    if (!mapping.room || !mapping.checkIn) {
-      setError("Room name and check-in date are required.");
-      return;
+    try {
+      mappingSchema.parse(mapping);
+      setError("");
+      setPhase("dashboard");
+      setCountdown(30);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        setError(err.errors[0].message);
+      } else {
+        setError("Invalid mapping configuration.");
+      }
     }
-    setPhase("dashboard");
-    setCountdown(30);
   };
 
   const textOf = (prop) => {
@@ -249,9 +272,9 @@ export default function Dashboard() {
                 id="token"
                 type="password"
                 placeholder="secret_xxxxxxxxxxxxxxxxxxxx"
-                className="h-11 w-full"
+                className={`h-11 w-full ${error.includes("token") || error.includes("secret") ? "border-destructive ring-destructive/20" : ""}`}
                 value={tokenDraft}
-                onChange={e => setTokenDraft(e.target.value)}
+                onChange={e => { setTokenDraft(e.target.value); setError(""); }}
                 onKeyDown={e => e.key === "Enter" && connect()}
               />
               <p className="text-xs text-muted-foreground mt-2">
@@ -307,9 +330,11 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Room / unit name <span className="text-destructive">*</span></Label>
-              <Select value={mapping.room} onValueChange={v => setMapping(m => ({ ...m, room: v }))}>
-                <SelectTrigger className="w-full h-11"><SelectValue placeholder="— select —" /></SelectTrigger>
+              <Label className="text-sm font-medium">Room <span className="text-destructive">*</span></Label>
+              <Select value={mapping.room} onValueChange={v => { setMapping(m => ({ ...m, room: v })); setError(""); }}>
+                <SelectTrigger className={`w-full h-11 ${error.includes("Room") ? "border-destructive ring-destructive/20" : ""}`}>
+                  <SelectValue placeholder="— select —" />
+                </SelectTrigger>
                 <SelectContent>
                   {propEntries.map(([k]) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
                 </SelectContent>
@@ -318,8 +343,10 @@ export default function Dashboard() {
             
             <div className="space-y-2">
               <Label className="text-sm font-medium">Check-in date <span className="text-destructive">*</span></Label>
-              <Select value={mapping.checkIn} onValueChange={v => setMapping(m => ({ ...m, checkIn: v }))}>
-                <SelectTrigger className="w-full h-11"><SelectValue placeholder="— select —" /></SelectTrigger>
+              <Select value={mapping.checkIn} onValueChange={v => { setMapping(m => ({ ...m, checkIn: v })); setError(""); }}>
+                <SelectTrigger className={`w-full h-11 ${error.includes("Check-in") ? "border-destructive ring-destructive/20" : ""}`}>
+                  <SelectValue placeholder="— select —" />
+                </SelectTrigger>
                 <SelectContent>
                   {propEntries.filter(([,p]) => p.type === "date").map(([k]) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
                 </SelectContent>
@@ -549,7 +576,7 @@ export default function Dashboard() {
           <div className="text-center py-20 text-muted-foreground">
             <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-20" />
             <h3 className="text-lg font-medium text-foreground mb-1">No rooms found</h3>
-            <p>Make sure the "Room / unit name" property is mapped correctly and your database has entries.</p>
+            <p>Make sure the "Room" property is mapped correctly and your database has entries.</p>
           </div>
         )}
 
