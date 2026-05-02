@@ -458,11 +458,10 @@ export default function Dashboard() {
   }
 
   // Dashboard Phase
-  // Also fix timezone issues with the next day calculation by just formatting the current selected date
-  const selectedDateObj = new Date(selectedDate);
-  // Add 1 day safely without timezone mess
-  selectedDateObj.setDate(selectedDateObj.getDate() + 1);
-  const nextD = format(selectedDateObj, "yyyy-MM-dd");
+  // Safely parse the selected date string (YYYY-MM-DD) into a local Date object to avoid UTC shifting
+  const [sYear, sMonth, sDay] = selectedDate.split("-").map(Number);
+  const localSelectedDate = new Date(sYear, sMonth - 1, sDay);
+  const nextD = format(addDays(localSelectedDate, 1), "yyyy-MM-dd");
 
   const avail = [];
   const booked = [];
@@ -490,11 +489,15 @@ export default function Dashboard() {
         let end = ci.end;
         if (co) end = co.start || co.end;
         
+        // Strip out times/timezones from the visual display to avoid confusion
+        const startStr = ci.start.split('T')[0];
+        const endStr = end ? end.split('T')[0] : "";
+        
         // Only show range if end exists and is different from start
-        if (end && end !== ci.start) {
-            dates = `${ci.start} to ${end}`;
+        if (endStr && endStr !== startStr) {
+            dates = `${startStr} to ${endStr}`;
         } else {
-            dates = ci.start || ""; 
+            dates = startStr || ""; 
         }
       }
     }
