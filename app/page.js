@@ -332,7 +332,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Room <span className="text-destructive">*</span></Label>
+              <Label className="text-sm font-medium">Room / unit name <span className="text-destructive">*</span></Label>
               <Select value={mapping.room} onValueChange={v => { setMapping(m => ({ ...m, room: v })); setError(""); }}>
                 <SelectTrigger className={`w-full h-11 ${error.includes("Room") ? "border-destructive ring-destructive/20" : ""}`}>
                   <SelectValue placeholder="— select —">
@@ -378,7 +378,7 @@ export default function Dashboard() {
             
             <div className="space-y-2">
               <Label className="text-sm font-medium flex items-center justify-between">
-                <span>Confirmation Field (Status)</span>
+                <span>Booking status</span>
                 <span className="text-xs text-muted-foreground font-normal">(optional)</span>
               </Label>
               <Select value={mapping.status} onValueChange={v => setMapping(m => ({ ...m, status: v, bookedValues: ["Confirmed"] }))}>
@@ -590,7 +590,7 @@ export default function Dashboard() {
           <div className="text-center py-20 text-muted-foreground">
             <CalendarIcon className="h-12 w-12 mx-auto mb-4 opacity-20" />
             <h3 className="text-lg font-medium text-foreground mb-1">No rooms found</h3>
-            <p>Make sure the "Room" property is mapped correctly and your database has entries.</p>
+            <p>Make sure the "Room / unit name" property is mapped correctly and your database has entries.</p>
           </div>
         )}
 
