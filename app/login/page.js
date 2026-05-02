@@ -42,28 +42,6 @@ export default async function LoginPage({ searchParams }) {
         <form
           action={async () => {
             "use server"
-            await signIn("github")
-          }}
-          style={{ marginBottom: '15px' }}
-        >
-          <button type="submit" style={{
-            width: '100%',
-            padding: '12px',
-            backgroundColor: '#24292e',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '16px',
-            cursor: 'pointer',
-            fontWeight: 'bold'
-          }}>
-            Sign in with GitHub
-          </button>
-        </form>
-
-        <form
-          action={async () => {
-            "use server"
             await signIn("google")
           }}
         >
