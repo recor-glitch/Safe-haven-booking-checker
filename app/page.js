@@ -115,7 +115,8 @@ export default function Dashboard() {
       const props = db.properties;
       const propKeys = Object.keys(props);
       
-      const room = propKeys.find(k => k.toLowerCase() === "room") || 
+      const room = propKeys.find(k => k.toLowerCase() === "room" || k.toLowerCase() === "rooms") || 
+                   propKeys.find(k => k.toLowerCase().includes("room")) ||
                    propKeys.find(k => props[k].type === "select" && k.toLowerCase().includes("room")) || 
                    propKeys.find(k => props[k].type === "title") || 
                    "";
@@ -334,7 +335,9 @@ export default function Dashboard() {
               <Label className="text-sm font-medium">Room <span className="text-destructive">*</span></Label>
               <Select value={mapping.room} onValueChange={v => { setMapping(m => ({ ...m, room: v })); setError(""); }}>
                 <SelectTrigger className={`w-full h-11 ${error.includes("Room") ? "border-destructive ring-destructive/20" : ""}`}>
-                  <SelectValue placeholder="— select —" />
+                  <SelectValue placeholder="— select —">
+                    {mapping.room || "— select —"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {propEntries.map(([k]) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
@@ -346,7 +349,9 @@ export default function Dashboard() {
               <Label className="text-sm font-medium">Check-in date <span className="text-destructive">*</span></Label>
               <Select value={mapping.checkIn} onValueChange={v => { setMapping(m => ({ ...m, checkIn: v })); setError(""); }}>
                 <SelectTrigger className={`w-full h-11 ${error.includes("Check-in") ? "border-destructive ring-destructive/20" : ""}`}>
-                  <SelectValue placeholder="— select —" />
+                  <SelectValue placeholder="— select —">
+                    {mapping.checkIn || "— select —"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {propEntries.filter(([,p]) => p.type === "date").map(([k]) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
@@ -360,7 +365,11 @@ export default function Dashboard() {
                 <span className="text-xs text-muted-foreground font-normal">(optional)</span>
               </Label>
               <Select value={mapping.checkOut} onValueChange={v => setMapping(m => ({ ...m, checkOut: v }))}>
-                <SelectTrigger className="w-full h-11"><SelectValue placeholder="— not set —" /></SelectTrigger>
+                <SelectTrigger className="w-full h-11">
+                  <SelectValue placeholder="— not set —">
+                    {mapping.checkOut || "— not set —"}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   {propEntries.filter(([,p]) => p.type === "date").map(([k]) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
                 </SelectContent>
@@ -373,7 +382,11 @@ export default function Dashboard() {
                 <span className="text-xs text-muted-foreground font-normal">(optional)</span>
               </Label>
               <Select value={mapping.status} onValueChange={v => setMapping(m => ({ ...m, status: v, bookedValues: ["Confirmed"] }))}>
-                <SelectTrigger className="w-full h-11"><SelectValue placeholder="— select —" /></SelectTrigger>
+                <SelectTrigger className="w-full h-11">
+                  <SelectValue placeholder="— select —">
+                    {mapping.status || "— select —"}
+                  </SelectValue>
+                </SelectTrigger>
                 <SelectContent>
                   {propEntries.filter(([,p]) => ["select", "multi_select", "rich_text"].includes(p.type)).map(([k]) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
                 </SelectContent>
