@@ -219,26 +219,50 @@ export default function Dashboard() {
   };
 
   const dateOf = (prop) => {
-    if (!prop || prop.type !== "date" || !prop.date) return null;
-    return { start: prop.date.start, end: prop.date.end || prop.date.start };
+    if (!prop) return null;
+    let d = null;
+    if (prop.type === "date") d = prop.date;
+    if (prop.type === "formula" && prop.formula?.type === "date") d = prop.formula.date;
+    if (!d) return null;
+    return { start: d.start, end: d.end || d.start };
   };
 
   const isBooked = (page, dateStr) => {
     const m = mapping;
-    if (m.status && m.bookedValues.length) {
-      if (!m.bookedValues.includes(textOf(page.properties[m.status]))) return false;
+    
+    // Status checking (case-insensitive and trimmed to avoid spaces breaking it)
+    if (m.status && m.bookedValues.length > 0) {
+      const statusText = textOf(page.properties[m.status]).trim().toLowerCase();
+      const allowed = m.bookedValues.map(v => v.trim().toLowerCase());
+      if (!allowed.includes(statusText)) return false;
     }
+    
     const ci = dateOf(page.properties[m.checkIn]);
-    if (!ci) return false;
+    if (!ci) return false; // Without a check-in date, we can't determine booking
+    
     let end = ci.end;
     if (m.checkOut) {
       const co = dateOf(page.properties[m.checkOut]);
-      end = co?.start || ci.end;
+      if (co) end = co.start || co.end;
     }
     if (!end) end = ci.start;
-    return m.checkOut
-      ? (dateStr >= ci.start && dateStr < end)
-      : (dateStr >= ci.start && dateStr <= end);
+
+    // We strip out timezones/times and parse strictly by the calendar day
+    const startDay = new Date(ci.start.split('T')[0]);
+    const endDay = new Date(end.split('T')[0]);
+    const checkDay = new Date(dateStr.split('T')[0]);
+
+    // Failsafe in case of invalid parsing
+    if (isNaN(startDay.getTime()) || isNaN(endDay.getTime())) return false;
+
+    if (startDay.getTime() === endDay.getTime()) {
+      // Single day booking (check-in and check-out are the exact same day)
+      return checkDay.getTime() === startDay.getTime();
+    } else {
+      // Range booking: it is booked FROM the check-in day UP TO (but excluding) the check-out day.
+      // This means the check-out day itself is "Available" for the next guest!
+      return checkDay >= startDay && checkDay < endDay;
+    }
   };
 
   const bookingFor = (room, dateStr) => {
