@@ -116,6 +116,7 @@ export default function Dashboard() {
       const propKeys = Object.keys(props);
       
       const room = propKeys.find(k => k.toLowerCase() === "room") || 
+                   propKeys.find(k => props[k].type === "select" && k.toLowerCase().includes("room")) || 
                    propKeys.find(k => props[k].type === "title") || 
                    "";
                    
